@@ -3,6 +3,9 @@
 #include "index.hpp"
 
 void Index::addFiles(std::vector<std::string> filePaths) {
+    // Create keyset for trie
+     marisa::Keyset keyset;
+    // Iterate the files, adding them to the searchIndex and keyset
     for (std::string& filePath : filePaths){
         std::string filename = this->getFilenameFromFilepath(filePath);
         // Check if filename exists in the search index. 
@@ -16,8 +19,12 @@ void Index::addFiles(std::vector<std::string> filePaths) {
             // Otherwise, create a new vector with this filename and create the index
             std::vector<std::string> newEntry {filePath};
             this->searchIndex.insert(std::pair<std::string, std::vector<std::string>>(filename, newEntry));
+            // Add new key to trie
+            keyset.push_back(filename);
         }
     }
+    // Create Trie
+    this->trie.build(keyset);
 }
 
 void Index::setFilePathDelimeter(std::string filePathDelimeter) {
@@ -25,32 +32,27 @@ void Index::setFilePathDelimeter(std::string filePathDelimeter) {
 }
 
 std::vector<std::string> Index::getFilenamesBySearchTerm(std::string searchTerm){
-    std::vector<std::string> filePaths;    
-    std::map<std::string, std::vector<std::string>>::iterator startIndexIterator = this->searchIndex.lower_bound(searchTerm);
-    // TODO: Can we get a map index from this iterator?
-    std::map<std::string, std::vector<std::string>>::iterator endIndexIterator = this->searchIndex.upper_bound(searchTerm);
-    for (std::map<std::string, std::vector<std::string>>::iterator iter = startIndexIterator; iter != endIndexIterator; ++iter) {
-        for (std::string filePath: iter->second) {
-            filePaths.push_back(filePath);
+    // Get matching keys from trie
+    marisa::Agent agent;
+    agent.set_query(searchTerm);
+    std::vector<std::string> keys;
+    while (trie.predictive_search(agent)) {
+        std::string newKey(agent.key().ptr(), agent.key().ptr() + agent.key().length());
+        if (newKey.find(this->filePathDelimeter) == std::string::npos) {
+            keys.push_back(newKey);
+        }       
+    }
+    std::vector<std::string> allFilePaths;
+    for (std::string key: keys) {
+        std::vector<std::string> filePaths = this->searchIndex.find(key)->second;
+        for (std::string filePath: filePaths) {
+            allFilePaths.push_back(filePath); 
         }
     }
-    return filePaths;
+    return allFilePaths;  
 }
 
 std::string Index::getFilenameFromFilepath(std::string filePath){
     std::size_t last_path_delimiter = filePath.find_last_of(this->filePathDelimeter);
     return filePath.substr(last_path_delimiter + 1);
-}
-
-std::vector<std::string> Index::getIndexKeysFromFilename(std::string filename){
-    /**
-     * Iterates the filename and return all substrings
-     **/
-    std::vector<std::string> indicies;
-    for (int i = 0; i < filename.length(); i++) {
-        for (int j = 0; j < i; i++){
-            indicies.push_back(filename.substr(j, i));
-        }
-    }
-    return indicies;
 }

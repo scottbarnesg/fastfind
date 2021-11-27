@@ -13,10 +13,9 @@ int main() {
     Index index = Index();
     index.addFiles(parser.getFilePaths());
     std::cout << " done." << std::endl;
-    std::vector<std::string> results = index.getFilenamesBySearchTerm("test.txt");
+    std::vector<std::string> results = index.getFilenamesBySearchTerm("tes");
     std::cout << "Results: " << std::endl;
     for (std::string result : results) {
         std::cout << result << std::endl;
-    };
-    
+    }; 
 }

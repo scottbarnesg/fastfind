@@ -15,8 +15,8 @@ class Index{
         std::vector<std::string> getFilenamesBySearchTerm(std::string searchTerm);
     private:
         std::string getFilenameFromFilepath(std::string filePath);
-        std::vector<std::string> getIndexKeysFromFilename(std::string filename);
         std::map<std::string, std::vector<std::string>> searchIndex;
+        marisa::Trie trie;
         std::string filePathDelimeter = "/";
 };
 
