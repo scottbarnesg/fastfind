@@ -12,9 +12,13 @@ class Index{
     public:
         void addFiles(std::vector<std::string> filePaths);
         void setFilePathDelimeter(std::string filePathDelimeter);
+        void saveToFile(std::string filename);
+        void loadFromFile(std::string filename);
         std::vector<std::string> getFilenamesBySearchTerm(std::string searchTerm);
     private:
         std::string getFilenameFromFilepath(std::string filePath);
+        void saveMapToFile(std::string filename);
+        void loadMapFromFile(std::string filename);
         std::map<std::string, std::vector<std::string>> searchIndex;
         marisa::Trie trie;
         std::string filePathDelimeter = "/";

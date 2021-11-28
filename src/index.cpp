@@ -52,6 +52,26 @@ std::vector<std::string> Index::getFilenamesBySearchTerm(std::string searchTerm)
     return allFilePaths;  
 }
 
+void Index::saveToFile(std::string filename){
+    this->trie.save(filename.c_str());
+}
+
+void Index::loadFromFile(std::string filename) {
+    this->trie.load(filename.c_str());
+}
+
+/*
+void Index::saveMapToFile(std::string filename) {
+    std::ofstream outFile(filename);
+    for (const auto &e : v) outFile << e << "\n";
+}
+
+void Index::loadMapFromFile(std::string filename) {
+    std::ifstream inFile(filename);
+    return 
+}
+*/
+
 std::string Index::getFilenameFromFilepath(std::string filePath){
     std::size_t last_path_delimiter = filePath.find_last_of(this->filePathDelimeter);
     return filePath.substr(last_path_delimiter + 1);
