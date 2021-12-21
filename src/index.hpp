@@ -34,8 +34,8 @@ class Index{
         marisa::Trie trie;
         std::string filePathDelimeter = "/";
         std::string dataDir = "data/";
-        std::string mapFilePath = "map.csv";
-        std::string trieFilePath = "trie.bin";
+        std::string mapFilePath = dataDir + "map.csv";
+        std::string trieFilePath = dataDir + "trie.bin";
 };
 
 #endif
