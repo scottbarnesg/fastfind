@@ -8,4 +8,6 @@ all:
 	$(CC) $(CFLAGS) $(SRCDIR)service.cpp $(SRCDIR)watcher.cpp -o $(BUILDDIR)fastfind-service
 clean:
 	$(RM) $(BUILDDIR)*
+install:
+	./setup.sh
 
