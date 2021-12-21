@@ -31,6 +31,11 @@ void Index::setFilePathDelimeter(std::string filePathDelimeter) {
     this->filePathDelimeter = filePathDelimeter;
 }
 
+bool Index::canLoadFromFile() {
+    std::filesystem::path trieFile(this->trieFilePath), mapFile(this->mapFilePath);
+    return std::filesystem::exists(trieFile) && std::filesystem::exists(mapFile);
+}
+
 std::vector<std::string> Index::getFilenamesBySearchTerm(std::string searchTerm){
     // Get matching keys from trie
     marisa::Agent agent;
@@ -44,33 +49,53 @@ std::vector<std::string> Index::getFilenamesBySearchTerm(std::string searchTerm)
     }
     std::vector<std::string> allFilePaths;
     for (std::string key: keys) {
-        std::vector<std::string> filePaths = this->searchIndex.find(key)->second;
-        for (std::string filePath: filePaths) {
-            allFilePaths.push_back(filePath); 
+        try {
+            std::vector<std::string> filePaths = this->searchIndex.find(key)->second;
+            for (std::string filePath: filePaths) {
+                allFilePaths.push_back(filePath); 
+            }
+        } catch (const std::bad_array_new_length& e) {
+            std::cerr << e.what() << std::endl;
+            std::cerr << "Skipping files for search key: " << key << std::endl;
+            continue;
         }
     }
     return allFilePaths;  
 }
 
-void Index::saveToFile(std::string filename){
+void Index::saveTrieToFile(std::string filename){
+    this->createDataDir();
     this->trie.save(filename.c_str());
 }
 
-void Index::loadFromFile(std::string filename) {
+void Index::loadTrieFromFile(std::string filename) {
     this->trie.load(filename.c_str());
 }
 
-/*
 void Index::saveMapToFile(std::string filename) {
-    std::ofstream outFile(filename);
-    for (const auto &e : v) outFile << e << "\n";
+    this->createDataDir();
+    this->fileManager.writeMapToFile(filename, this->searchIndex);
 }
 
 void Index::loadMapFromFile(std::string filename) {
-    std::ifstream inFile(filename);
-    return 
+    this->searchIndex = this->fileManager.readMapFromFile(filename);
 }
-*/
+
+void Index::createDataDir(){
+    if (!std::filesystem::exists(this->dataDir)) {
+        std::filesystem::create_directory(this->dataDir);
+    }
+}
+
+void Index::saveToDisk(){
+    this->saveTrieToFile(this->trieFilePath);
+    this->saveMapToFile(this->mapFilePath);
+}
+
+void Index::loadFromDisk(){
+    this->loadTrieFromFile(this->trieFilePath);
+    this->loadMapFromFile(this->mapFilePath);
+}
 
 std::string Index::getFilenameFromFilepath(std::string filePath){
     std::size_t last_path_delimiter = filePath.find_last_of(this->filePathDelimeter);

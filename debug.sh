@@ -1,1 +1,1 @@
-gdb ./bin/lightning-search  # type r to run binary in gdb
+gdb ./bin/fastfind  # type r to run binary in gdb
