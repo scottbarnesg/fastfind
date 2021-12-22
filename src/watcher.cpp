@@ -16,28 +16,33 @@ std::string FileSystemEvent::getFilePath() {
 
 
 void watchForChanges(FileSystemWatcher *watcher) {
-    printf("Started file watch thread.\n");
+    std::cout << "Started file watch thread." << std::endl;
     while(true) {
-        printf("entered loop");
         int i = 0;
-        printf("Creating buffer...");
         char buffer[EVENT_BUF_LEN];
-        printf("Reading from buffer...");
         int length = read(watcher->inotify, buffer, EVENT_BUF_LEN);
-        printf("done.\n");
+        if (length < 0) {
+            std::cerr << "Error reading inotify event.\n" << std::endl;
+            continue;
+        }
         while (i < length) {
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
             if (event->len) {
-                printf("Event detected for %s .\n", event->name);
                 if (event->mask & IN_CREATE) {
-                    FileSystemEvent createEvent = FileSystemEvent(EVENT_TYPE_CREATED, event->name);
+                    std::string filePath = watcher->getWatch(event->wd) + event->name;
+                    FileSystemEvent createEvent = FileSystemEvent(EVENT_TYPE_CREATED, filePath);
                     watcher->addEvent(createEvent);
-                    printf("The file %s was created.\n", event->name);
 
-                } else if (event->mask & IN_DELETE) {
-                    FileSystemEvent deleteEvent = FileSystemEvent(EVENT_TYPE_DELETED, event->name);
+                }
+                else if (event->mask & IN_DELETE) {
+                    std::string filePath = watcher->getWatch(event->wd) + event->name;
+                    FileSystemEvent deleteEvent = FileSystemEvent(EVENT_TYPE_DELETED, filePath);
                     watcher->addEvent(deleteEvent);
-                    printf("The file %s was deleted.\n", event->name);
+                }
+                else if ( event->mask & IN_MOVE) {
+                    std::string filePath = watcher->getWatch(event->wd) + event->name;
+                    FileSystemEvent moveEvent = FileSystemEvent(EVENT_TYPE_MOVED, filePath);
+                    watcher->addEvent(moveEvent);
                 }
             }
             i += EVENT_SIZE + event->len;
@@ -51,15 +56,15 @@ FileSystemWatcher::FileSystemWatcher() {
     if (this->inotify < 0) {
         throw std::runtime_error("Failed to initialize inotify");
     }
-    this->watch = inotify_add_watch(this->inotify, this->targetDir.c_str(), IN_CREATE | IN_DELETE);
-    if (this->watch < 0) {
-        throw std::runtime_error("Failed to add watch on: " + this->targetDir);
-    }
+    // Recursively add watches to each subdirectory in the target dir
+    this->addInotifyWatches();
 }
 
 FileSystemWatcher::~FileSystemWatcher() {
     shutdown = true;
-    inotify_rm_watch(this->inotify, this->watch);
+    for (std::pair<int, std::string> watch: this->watches) {
+        inotify_rm_watch(this->inotify, watch.first);
+    }
 }
 
 void FileSystemWatcher::start() {
@@ -74,8 +79,44 @@ bool FileSystemWatcher::fileChanged() {
     return !this->eventQueue.empty();
 }
 
+std::string FileSystemWatcher::getWatch(int wd){
+    return this->watches[wd];
+}
+
 FileSystemEvent FileSystemWatcher::getFileChangedEvent() {
     FileSystemEvent event = this->eventQueue.front();
     this->eventQueue.pop();
     return event;
+}
+
+void FileSystemWatcher::addInotifyWatches() {
+    // Add target directory
+    int watch = inotify_add_watch(this->inotify, this->targetDir.c_str(), IN_CREATE | IN_DELETE | IN_MOVE);
+    if (watch < 0) {
+        throw std::runtime_error("Failed to add watch on: " + this->targetDir);
+    }
+    this->watches[watch] = this->targetDir + "/";
+    // Recursively add subdirectories
+    for (const auto& dir : std::filesystem::recursive_directory_iterator(this->targetDir, std::filesystem::directory_options::skip_permission_denied)) {
+        try {
+            if(std::filesystem::is_directory(dir.path()) && !this->pathInIgnoreList(dir.path())) { 
+                watch = inotify_add_watch(this->inotify, dir.path().c_str(), IN_CREATE | IN_DELETE | IN_MOVE);
+                if (watch < 0) {
+                    continue;
+                }
+                this->watches[watch] = std::string(dir.path()) + "/";
+            }
+        } catch (std::filesystem::filesystem_error &e) {
+            continue;
+        }
+    }
+}
+
+bool FileSystemWatcher::pathInIgnoreList(std::string path) {
+    for (std::string ignoreItem : this->ignoreList) {
+        if (path.find(ignoreItem) != std::string::npos){
+            return true;
+        }
+    }
+    return false;
 }
