@@ -52,7 +52,7 @@ class FileSystemWatcher {
         std::thread watchThread;
         std::map<int, std::string> watches;
         std::queue<FileSystemEvent> eventQueue;
-        std::vector<std::string> ignoreList = {"/.", "/var/lib/snapd/", "/run/", "/dev"};
+        std::vector<std::string> ignoreList = {"/.", "/var/lib/snapd/", "/run/", "/dev", ".lockfile"};
 };
 
 #endif

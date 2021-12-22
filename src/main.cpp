@@ -4,6 +4,7 @@
 
 #include "parser.hpp"
 #include "index.hpp"
+#include "lock.hpp"
 
 void parse_files() {
     // Parse files on disk
@@ -19,48 +20,29 @@ void parse_files() {
     index.addFiles(parser.getFilePaths());
     std::cout << " done." << std::endl;
     // Write files to disk
+    Lockfile lockfile = Lockfile();
+    lockfile.waitForLock();
     index.saveToDisk();
+    lockfile.releaseLock();
 }
 
 int main(int argc, char** argv) {
     Index index = Index();
-    std::thread parseFilesThread;
-    if (index.canLoadFromFile()) {
-        // Load data from file
-        std::cout << "Loading search index from disk...";
-        index.loadFromDisk();
-        std::cout << " done." << std::endl;
-    }
-    else {
+    if (!index.canLoadFromFile()) {
         // Parse file system in main thread for first time setup
         std::cout << "No existing search index found, running first time build. This may take a minute..." << std::endl;
         parse_files();
-        // Load data from file
-        std::cout << "Loading search index from disk...";
-        index.loadFromDisk();
-        std::cout << " done." << std::endl;
     }
-    
-    /*
-    while(true) {
-        std::string input;
-        std::cout << "Enter a search term: ";
-        std::cin >> input;
-        std::vector<std::string> results = index.getFilenamesBySearchTerm(input);
-        std::cout << "Results: " << std::endl;
-        for (std::string result : results) {
-            std::cout << result << std::endl;
-        }; 
-    }
-    */
+    // Load data from file
+    Lockfile lockfile = Lockfile();
+    lockfile.waitForLock();
+    index.loadFromDisk();
+    lockfile.releaseLock();
 
+    // Handle search input
     std::string input = argv[1];
     std::vector<std::string> results = index.getFilenamesBySearchTerm(input);
     for (std::string result : results) {
         std::cout << result << std::endl;
     };
-
-    if (parseFilesThread.joinable()) {
-        parseFilesThread.join();
-    }
 }

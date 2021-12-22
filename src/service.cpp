@@ -3,6 +3,7 @@
 #include "index.hpp"
 #include "parser.hpp"
 #include "watcher.hpp"
+#include "lock.hpp"
 
 
 void parse_files() {
@@ -19,24 +20,33 @@ void parse_files() {
     index.addFiles(parser.getFilePaths());
     std::cout << " done." << std::endl;
     // Write files to disk
+    Lockfile lockfile = Lockfile();
+    lockfile.waitForLock();
     index.saveToDisk();
+    lockfile.releaseLock();
 }
 
 void updateIndex(FileSystemEvent event) {
+    Lockfile lockfile = Lockfile();
     Index index = Index();
+    lockfile.waitForLock();
     index.loadFromDisk();
+    lockfile.releaseLock();
     index.buildKeyset();
     if (event.getEventType() == EVENT_TYPE_CREATED) {
         index.addFile(event.getFilePath());
         index.buildIndex();
+        lockfile.waitForLock();
         index.saveToDisk();
+        lockfile.releaseLock();
     }
     else if (event.getEventType() == EVENT_TYPE_DELETED) {
         index.removeFile(event.getFilePath());
         index.buildIndex();
+        lockfile.waitForLock();
         index.saveToDisk();
+        lockfile.releaseLock();
     }
-    // TODO: Add handling for EVENT_TYPE_MOVE
 }
 
 int main() {
