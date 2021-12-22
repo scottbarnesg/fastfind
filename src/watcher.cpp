@@ -28,21 +28,16 @@ void watchForChanges(FileSystemWatcher *watcher) {
         while (i < length) {
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
             if (event->len) {
-                if (event->mask & IN_CREATE) {
+                if (event->mask & (IN_CREATE | IN_MOVED_TO)) {
                     std::string filePath = watcher->getWatch(event->wd) + event->name;
                     FileSystemEvent createEvent = FileSystemEvent(EVENT_TYPE_CREATED, filePath);
                     watcher->addEvent(createEvent);
 
                 }
-                else if (event->mask & IN_DELETE) {
+                else if (event->mask & (IN_DELETE | IN_MOVED_FROM)) {
                     std::string filePath = watcher->getWatch(event->wd) + event->name;
                     FileSystemEvent deleteEvent = FileSystemEvent(EVENT_TYPE_DELETED, filePath);
                     watcher->addEvent(deleteEvent);
-                }
-                else if ( event->mask & IN_MOVE) {
-                    std::string filePath = watcher->getWatch(event->wd) + event->name;
-                    FileSystemEvent moveEvent = FileSystemEvent(EVENT_TYPE_MOVED, filePath);
-                    watcher->addEvent(moveEvent);
                 }
             }
             i += EVENT_SIZE + event->len;
