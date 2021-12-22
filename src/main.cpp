@@ -9,7 +9,7 @@ void parse_files() {
     // Parse files on disk
     Parser parser = Parser();
     // std::string searchDir = std::filesystem::current_path();
-    std::string searchDir = "/";
+    std::string searchDir = "/home/scottgbarnes/";
     std::cout << "Parsing files in " << searchDir << " ..." << std::flush;;
     parser.findFiles(searchDir); 
     std::cout << " done. Found " << parser.getFilePaths().size() << " files." << std::endl;
@@ -22,13 +22,10 @@ void parse_files() {
     index.saveToDisk();
 }
 
-int main() {
+int main(int argc, char** argv) {
     Index index = Index();
     std::thread parseFilesThread;
     if (index.canLoadFromFile()) {
-        // Start background thread to parse files
-        std::cout << "Parsing files in background..." << std::endl;
-        parseFilesThread = std::thread{parse_files};
         // Load data from file
         std::cout << "Loading search index from disk...";
         index.loadFromDisk();
@@ -44,6 +41,7 @@ int main() {
         std::cout << " done." << std::endl;
     }
     
+    /*
     while(true) {
         std::string input;
         std::cout << "Enter a search term: ";
@@ -54,6 +52,13 @@ int main() {
             std::cout << result << std::endl;
         }; 
     }
+    */
+
+    std::string input = argv[1];
+    std::vector<std::string> results = index.getFilenamesBySearchTerm(input);
+    for (std::string result : results) {
+        std::cout << result << std::endl;
+    };
 
     if (parseFilesThread.joinable()) {
         parseFilesThread.join();

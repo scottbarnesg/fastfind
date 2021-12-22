@@ -3,28 +3,60 @@
 #include "index.hpp"
 
 void Index::addFiles(std::vector<std::string> filePaths) {
-    // Create keyset for trie
-     marisa::Keyset keyset;
     // Iterate the files, adding them to the searchIndex and keyset
     for (std::string& filePath : filePaths){
-        std::string filename = this->getFilenameFromFilepath(filePath);
-        // Check if filename exists in the search index. 
-        if (this->searchIndex.count(filename) > 0) {
-            // If so, get the existing list of filenames and append the new one
-            std::vector<std::string> existingEntries = this->searchIndex.find(filename)->second;
-            existingEntries.push_back(filePath);
+        this->addFile(filePath);
+    }
+    this->buildIndex();
+}
+
+void Index::addFile(std::string filePath) {
+    std::string filename = this->getFilenameFromFilepath(filePath);
+    // Check if filename exists in the search index. 
+    if (this->searchIndex.count(filename) > 0) {
+        // If so, get the existing list of filenames and append the new one
+        std::vector<std::string> existingEntries = this->searchIndex.find(filename)->second;
+        existingEntries.push_back(filePath);
+        this->searchIndex[filename] = existingEntries;
+    }
+    else {
+        // Otherwise, create a new vector with this filename and create the index
+        std::vector<std::string> newEntry {filePath};
+        this->searchIndex.insert(std::pair<std::string, std::vector<std::string>>(filename, newEntry));
+        // Add new key to trie
+        keyset.push_back(filename);
+    }
+}
+
+void Index::removeFile(std::string filePath) {
+    std::string filename = this->getFilenameFromFilepath(filePath);
+    // Check if filename exists in the search index. 
+    if (this->searchIndex.count(filename) > 0) {
+        // If so, get the existing list of filenames and remove the filename
+        std::vector<std::string> existingEntries = this->searchIndex.find(filename)->second;
+        existingEntries.erase(std::remove(existingEntries.begin(), existingEntries.end(), filePath), existingEntries.end());
+        // If there are still entries, update the entry for this filename
+        if (existingEntries.size() > 0) {
             this->searchIndex[filename] = existingEntries;
         }
+        // Otherwise, delete the key from the map and rebuild the keyset
         else {
-            // Otherwise, create a new vector with this filename and create the index
-            std::vector<std::string> newEntry {filePath};
-            this->searchIndex.insert(std::pair<std::string, std::vector<std::string>>(filename, newEntry));
-            // Add new key to trie
-            keyset.push_back(filename);
+            this->searchIndex.erase(filename);
+            this->keyset.reset();
+            this->buildKeyset();
         }
     }
+}
+
+void Index::buildIndex() {
     // Create Trie
-    this->trie.build(keyset);
+    this->trie.build(this->keyset);
+}
+
+void Index::buildKeyset() {
+    for (const auto &index: this->searchIndex) {
+        keyset.push_back(index.first);
+    }
 }
 
 void Index::setFilePathDelimeter(std::string filePathDelimeter) {

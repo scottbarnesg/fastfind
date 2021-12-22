@@ -48,7 +48,7 @@ class FileSystemWatcher {
     private:
         void addInotifyWatches();
         bool pathInIgnoreList(std::string path);
-        std::string targetDir = "/"; // getenv("HOME");
+        std::string targetDir = getenv("HOME");
         std::thread watchThread;
         std::map<int, std::string> watches;
         std::queue<FileSystemEvent> eventQueue;
