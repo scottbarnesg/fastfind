@@ -16,6 +16,8 @@ A fast memory-backed file serach tool. It provides constant-time lookup via a me
 
 ## Performance
 
+#### Lookup Time
+
 In the following example, I've created a file called "test.txt" and would like to search for it. `fastfind` completes >25x faster than `find`:
 
 ```
@@ -36,3 +38,7 @@ real	0m12.957s
 user	0m0.575s
 sys	0m2.139s
 ```
+
+#### Memory utilization
+
+Expected memory utilization is approximately 400 Mb per 1 million files indexed. 
