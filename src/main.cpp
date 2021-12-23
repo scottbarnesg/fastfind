@@ -11,7 +11,7 @@ void parse_files() {
     // Parse files on disk
     Parser parser = Parser();
     // std::string searchDir = std::filesystem::current_path();
-    std::string searchDir = getenv("HOME");
+    std::string searchDir = "/";
     std::cout << "Parsing files in " << searchDir << " ..." << std::flush;;
     parser.findFiles(searchDir); 
     std::cout << " done. Found " << parser.getFilePaths().size() << " files." << std::endl;
